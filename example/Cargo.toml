@@ -1,0 +1,8 @@
+[package]
+edition = "2021"
+name = "hello"
+version = "0.1.0"
+
+[dependencies]
+# example dependency
+rand = "0.9.0"
