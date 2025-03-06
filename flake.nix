@@ -30,7 +30,7 @@
         lib = {
           generateSrc =
             { src
-            , rustToolchain
+            , rustToolchain ? pkgs.rust-bin.stable.latest
             , projectName ? "project"
             , name ? "${projectName}-generated-src"
             }:
