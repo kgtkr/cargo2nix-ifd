@@ -1,7 +1,5 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
     cargo2nix.url = "github:cargo2nix/cargo2nix";
     # for tools.nix
     crate2nix = {
@@ -15,22 +13,17 @@
     };
   };
 
-  outputs = { nixpkgs, flake-utils, cargo2nix, crate2nix, crane, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        overlays = [ cargo2nix.overlays.default ];
-        pkgsArgs = {
-          inherit system overlays;
-        };
-        pkgs = import nixpkgs pkgsArgs;
-        tools = pkgs.callPackage "${crate2nix}/tools.nix" { inherit pkgs; };
-        filterCargoSources = pkgs.callPackage "${crane}/lib/filterCargoSources.nix" { };
-      in
-      {
-        lib = {
+  outputs = { cargo2nix, crate2nix, crane, ... }:
+    {
+      mkLib = pkgs:
+        let
+          tools = pkgs.callPackage "${crate2nix}/tools.nix" { inherit pkgs; };
+          filterCargoSources = pkgs.callPackage "${crane}/lib/filterCargoSources.nix" { };
+        in
+        {
           generateSrc =
             { src
-            , rustToolchain ? pkgs.rust-bin.stable.latest.minimal
+            , rustToolchain
             , projectName ? "project"
             , name ? "${projectName}-generated-src"
             }:
@@ -41,7 +34,7 @@
               };
               generatedSrc = pkgs.stdenv.mkDerivation {
                 inherit name src;
-                buildInputs = [ rustToolchain cargo2nix.packages.${system}.cargo2nix ];
+                buildInputs = [ rustToolchain cargo2nix.packages.${pkgs.stdenv.buildPlatform.system}.cargo2nix ];
                 buildPhase = ''
                   export HOME=/tmp/home
                   export CARGO_HOME="$HOME/cargo"
@@ -75,5 +68,5 @@
               inherit name src filter;
             };
         };
-      });
+    };
 }

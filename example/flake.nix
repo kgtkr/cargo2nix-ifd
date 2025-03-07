@@ -4,7 +4,8 @@
     flake-utils.url = "github:numtide/flake-utils";
     cargo2nix.url = "github:cargo2nix/cargo2nix";
     cargo2nix-ifd = {
-      url = "github:kgtkr/cargo2nix-ifd";
+      # url = "github:kgtkr/cargo2nix-ifd";
+      url = "path:../";
       inputs.cargo2nix.follows = "cargo2nix";
     };
   };
@@ -12,17 +13,18 @@
   outputs = { self, nixpkgs, flake-utils, cargo2nix, cargo2nix-ifd, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ cargo2nix.overlays.default ];
         };
+        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
         projectName = "hello";
-        filteredSrc = cargo2nix-ifd.lib.${system}.filterSrc {
+        cargo2nix-ifd-lib = cargo2nix-ifd.mkLib pkgs;
+        filteredSrc = cargo2nix-ifd-lib.filterSrc {
           src = ./.;
           inherit projectName;
         };
-        generatedSrc = cargo2nix-ifd.lib.${system}.generateSrc {
+        generatedSrc = cargo2nix-ifd-lib.generateSrc {
           src = filteredSrc;
           inherit projectName rustToolchain;
         };
@@ -35,9 +37,10 @@
       {
         packages = {
           inherit hello;
+          default = self.packages.${system}.hello;
         };
-        defaultPackage = self.packages.${system}.hello;
-        devShell = rustPkgs.workspaceShell {
+        devShells = {
+          default = rustPkgs.workspaceShell { };
         };
       }
     );
